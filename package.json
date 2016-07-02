@@ -1,6 +1,6 @@
 {
-  "name": "pegjs",
-  "version": "0.9.0",
+  "name": "pegjs-dev",
+  "version": "0.9.119",
   "description": "Parser generator for JavaScript",
   "keywords": [
     "parser generator",
@@ -42,7 +42,10 @@
     "package.json"
   ],
   "main": "lib/peg",
-  "bin": "bin/pegjs",
+  "bin": {
+    "pegjs": "bin/pegjs",
+    "pegjs-dev": "bin/pegjs"
+  },
   "repository": "pegjs/pegjs",
   "scripts": {
     "test": "make lint && make spec"
