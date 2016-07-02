@@ -1,4 +1,8 @@
+/* eslint-env browser, jquery */
+/* global benchmarks, Runner */
+
 $("#run").click(function() {
+  "use strict";
 
   /* Results Table Manipulation */
 
@@ -77,7 +81,7 @@ $("#run").click(function() {
       }).responseText;
     },
 
-    testStart: function(benchmark, test) {
+    testStart: function() {
       /* Nothing to do. */
     },
 
@@ -130,5 +134,7 @@ $("#run").click(function() {
 });
 
 $(document).ready(function() {
+  "use strict";
+
   $("#run").focus();
 });

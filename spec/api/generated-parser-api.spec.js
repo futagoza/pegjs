@@ -1,19 +1,24 @@
+/* eslint no-console: 0 */
+/* global peg, console */
+
+"use strict";
+
 describe("generated parser API", function() {
   describe("parse", function() {
     it("parses input", function() {
-      var parser = PEG.buildParser('start = "a"');
+      var parser = peg.generate('start = "a"');
 
       expect(parser.parse("a")).toBe("a");
     });
 
     it("throws an exception on syntax error", function() {
-      var parser = PEG.buildParser('start = "a"');
+      var parser = peg.generate('start = "a"');
 
       expect(function() { parser.parse("b"); }).toThrow();
     });
 
     describe("start rule", function() {
-      var parser = PEG.buildParser([
+      var parser = peg.generate([
             'a = "x" { return "a"; }',
             'b = "x" { return "b"; }',
             'c = "x" { return "c"; }'
@@ -42,79 +47,87 @@ describe("generated parser API", function() {
     });
 
     describe("tracing", function() {
-      var parser = PEG.buildParser([
+      var parser = peg.generate([
             'start = a / b',
             'a = "a"',
             'b = "b"'
           ].join("\n"), { trace: true });
 
       describe("default tracer", function() {
-        it("traces using console.log", function() {
-          spyOn(console, "log");
+        it("traces using console.log (if console is defined)", function() {
+          if (typeof console === "object") {
+            spyOn(console, "log");
+          }
 
           parser.parse("b");
 
-          expect(console.log).toHaveBeenCalledWith("1:1 rule.enter start");
-          expect(console.log).toHaveBeenCalledWith("1:1 rule.enter   a");
-          expect(console.log).toHaveBeenCalledWith("1:1 rule.fail    a");
-          expect(console.log).toHaveBeenCalledWith("1:1 rule.enter   b");
-          expect(console.log).toHaveBeenCalledWith("1:2 rule.match   b");
-          expect(console.log).toHaveBeenCalledWith("1:2 rule.match start");
+          if (typeof console === "object") {
+            expect(console.log).toHaveBeenCalledWith("1:1-1:1 rule.enter start");
+            expect(console.log).toHaveBeenCalledWith("1:1-1:1 rule.enter   a");
+            expect(console.log).toHaveBeenCalledWith("1:1-1:1 rule.fail    a");
+            expect(console.log).toHaveBeenCalledWith("1:1-1:1 rule.enter   b");
+            expect(console.log).toHaveBeenCalledWith("1:1-1:2 rule.match   b");
+            expect(console.log).toHaveBeenCalledWith("1:1-1:2 rule.match start");
+          }
         });
       });
 
       describe("custom tracers", function() {
         describe("trace", function() {
           it("receives tracing events", function() {
-            var tracer = { trace: function() { } };
-
-            spyOn(tracer, "trace");
+            var tracer = jasmine.createSpyObj("tracer", ["trace"]);
 
             parser.parse("b", { tracer: tracer });
 
             expect(tracer.trace).toHaveBeenCalledWith({
-              type:   'rule.enter',
-              rule:   'start',
-              offset: 0,
-              line:   1,
-              column: 1
+              type:     "rule.enter",
+              rule:     "start",
+              location: {
+                start: { offset: 0, line: 1, column: 1 },
+                end:   { offset: 0, line: 1, column: 1 }
+              }
             });
             expect(tracer.trace).toHaveBeenCalledWith({
-              type:   'rule.enter',
-              rule:   'a',
-              offset: 0,
-              line:   1,
-              column: 1
+              type:     "rule.enter",
+              rule:     "a",
+              location: {
+                start: { offset: 0, line: 1, column: 1 },
+                end:   { offset: 0, line: 1, column: 1 }
+              }
             });
             expect(tracer.trace).toHaveBeenCalledWith({
-              type:   'rule.fail',
-              rule:   'a',
-              offset: 0,
-              line:   1,
-              column: 1
+              type:     "rule.fail",
+              rule:     "a",
+              location: {
+                start: { offset: 0, line: 1, column: 1 },
+                end:   { offset: 0, line: 1, column: 1 }
+              }
             });
             expect(tracer.trace).toHaveBeenCalledWith({
-              type:   'rule.enter',
-              rule:   'b',
-              offset: 0,
-              line:   1,
-              column: 1
+              type:     "rule.enter",
+              rule:     "b",
+              location: {
+                start: { offset: 0, line: 1, column: 1 },
+                end:   { offset: 0, line: 1, column: 1 }
+              }
             });
             expect(tracer.trace).toHaveBeenCalledWith({
-              type:   'rule.match',
-              rule:   'b',
-              result: 'b',
-              offset: 1,
-              line:   1,
-              column: 2
+              type:     "rule.match",
+              rule:     "b",
+              result:   "b",
+              location: {
+                start: { offset: 0, line: 1, column: 1 },
+                end:   { offset: 1, line: 1, column: 2 }
+              }
             });
             expect(tracer.trace).toHaveBeenCalledWith({
-              type:   'rule.match',
-              rule:   'start',
-              result: 'b',
-              offset: 1,
-              line:   1,
-              column: 2
+              type:     "rule.match",
+              rule:     "start",
+              result:   "b",
+              location: {
+                start: { offset: 0, line: 1, column: 1 },
+                end:   { offset: 1, line: 1, column: 2 }
+              }
             });
           });
         });
@@ -122,7 +135,7 @@ describe("generated parser API", function() {
     });
 
     it("accepts custom options", function() {
-      var parser = PEG.buildParser('start = "a"');
+      var parser = peg.generate('start = "a"');
 
       parser.parse("a", { foo: 42 });
     });

@@ -1,3 +1,7 @@
+/* global peg */
+
+"use strict";
+
 describe("plugin API", function() {
   beforeEach(function() {
     this.addMatchers({
@@ -29,7 +33,7 @@ describe("plugin API", function() {
         };
 
         return typeof this.actual === "function";
-      },
+      }
     });
   });
 
@@ -44,14 +48,14 @@ describe("plugin API", function() {
             { use: function() { pluginsUsed[2] = true; } }
           ];
 
-      PEG.buildParser(grammar, { plugins: plugins });
+      peg.generate(grammar, { plugins: plugins });
 
       expect(pluginsUsed).toEqual([true, true, true]);
     });
 
     it("receives configuration", function() {
       var plugin = {
-            use: function(config, options) {
+            use: function(config) {
               var i;
 
               expect(config).toBeObject();
@@ -78,24 +82,24 @@ describe("plugin API", function() {
             }
           };
 
-      PEG.buildParser(grammar, { plugins: [plugin] });
+      peg.generate(grammar, { plugins: [plugin] });
     });
 
     it("receives options", function() {
-      var buildParserOptions = { foo: 42 },
-          plugin             = {
+      var plugin             = {
             use: function(config, options) {
-              expect(options).toEqual(buildParserOptions);
+              expect(options).toEqual(generateOptions);
             }
-          };
+          },
+          generateOptions = { plugins: [plugin], foo: 42 };
 
-      PEG.buildParser(grammar, buildParserOptions);
+      peg.generate(grammar, generateOptions);
     });
 
     it("can replace parser", function() {
       var plugin = {
-            use: function(config, options) {
-              var parser = PEG.buildParser([
+            use: function(config) {
+              var parser = peg.generate([
                     'start = .* {',
                     '  return {',
                     '    type:  "grammar",',
@@ -113,14 +117,14 @@ describe("plugin API", function() {
               config.parser = parser;
             }
           },
-          parser = PEG.buildParser('a', { plugins: [plugin] });
+          parser = peg.generate('a', { plugins: [plugin] });
 
       expect(parser.parse("a")).toBe("a");
     });
 
     it("can change compiler passes", function() {
       var plugin = {
-            use: function(config, options) {
+            use: function(config) {
               var pass = function(ast) {
                     ast.code = '({ parse: function() { return 42; } })';
                   };
@@ -128,7 +132,7 @@ describe("plugin API", function() {
               config.passes.generate = [pass];
             }
           },
-          parser = PEG.buildParser(grammar, { plugins: [plugin] });
+          parser = peg.generate(grammar, { plugins: [plugin] });
 
       expect(parser.parse("a")).toBe(42);
     });
@@ -144,7 +148,7 @@ describe("plugin API", function() {
               options.allowedStartRules = ["b", "c"];
             }
           },
-          parser  = PEG.buildParser(grammar, {
+          parser  = peg.generate(grammar, {
             allowedStartRules: ["a"],
             plugins:           [plugin]
           });

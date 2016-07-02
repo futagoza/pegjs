@@ -1,6 +1,12 @@
+/* global peg */
+
+"use strict";
+
 beforeEach(function() {
   this.addMatchers({
-    toChangeAST: function(grammar) {
+    toChangeAST: function(grammar, details, options) {
+      options = options !== undefined ? options : {};
+
       function matchDetails(value, details) {
         function isArray(value) {
           return Object.prototype.toString.apply(value) === "[object Array]";
@@ -38,9 +44,7 @@ beforeEach(function() {
         }
       }
 
-      var options = arguments.length > 2 ? arguments[1] : {},
-          details = arguments[arguments.length - 1],
-          ast     = PEG.parser.parse(grammar);
+      var ast = peg.parser.parse(grammar);
 
       this.actual(ast, options);
 
@@ -57,7 +61,8 @@ beforeEach(function() {
     },
 
     toReportError: function(grammar, details) {
-      var ast = PEG.parser.parse(grammar);
+      var ast = peg.parser.parse(grammar),
+          key;
 
       try {
         this.actual(ast);
@@ -71,12 +76,6 @@ beforeEach(function() {
 
         return false;
       } catch (e) {
-        /*
-         * Should be at the top level but then JSHint complains about bad for
-         * in variable.
-         */
-        var key;
-
         if (this.isNot) {
           this.message = function() {
             return "Expected the pass not to report an error "

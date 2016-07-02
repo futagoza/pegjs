@@ -1,3 +1,7 @@
+/* global peg */
+
+"use strict";
+
 describe("PEG.js grammar parser", function() {
   var literalAbcd       = { type: "literal",      value: "abcd", ignoreCase: false },
       literalEfgh       = { type: "literal",      value: "efgh", ignoreCase: false },
@@ -29,6 +33,8 @@ describe("PEG.js grammar parser", function() {
         type:     "sequence",
         elements: [labeledAbcd, labeledEfgh, labeledIjkl, labeledMnop]
       },
+      groupLabeled      = { type: "group",  expression: labeledAbcd },
+      groupSequence     = { type: "group",  expression: sequence    },
       actionAbcd        = { type: "action", expression: literalAbcd, code: " code " },
       actionEfgh        = { type: "action", expression: literalEfgh, code: " code " },
       actionIjkl        = { type: "action", expression: literalIjkl, code: " code " },
@@ -73,13 +79,12 @@ describe("PEG.js grammar parser", function() {
     );
   }
 
-  function classGrammar(parts, inverted, ignoreCase, rawText) {
+  function classGrammar(parts, inverted, ignoreCase) {
     return oneRuleGrammar({
       type:       "class",
       parts:      parts,
       inverted:   inverted,
-      ignoreCase: ignoreCase,
-      rawText:    rawText
+      ignoreCase: ignoreCase
     });
   }
 
@@ -98,13 +103,84 @@ describe("PEG.js grammar parser", function() {
         rules:       [ruleA, ruleB]
       };
 
+  var stripLocation = (function() {
+    function buildVisitor(functions) {
+      return function(node) {
+        return functions[node.type].apply(null, arguments);
+      };
+    }
+
+    function stripLeaf(node) {
+      delete node.location;
+    }
+
+    function stripExpression(node) {
+      delete node.location;
+
+      strip(node.expression);
+    }
+
+    function stripChildren(property) {
+      return function(node) {
+        var i;
+
+        delete node.location;
+
+        for (i = 0; i < node[property].length; i++) {
+          strip(node[property][i]);
+        }
+      };
+    }
+
+    var strip = buildVisitor({
+      grammar: function(node) {
+        var i;
+
+        delete node.location;
+
+        if (node.initializer) {
+          strip(node.initializer);
+        }
+
+        for (i = 0; i < node.rules.length; i++) {
+          strip(node.rules[i]);
+        }
+      },
+
+      initializer:  stripLeaf,
+      rule:         stripExpression,
+      named:        stripExpression,
+      choice:       stripChildren("alternatives"),
+      action:       stripExpression,
+      sequence:     stripChildren("elements"),
+      labeled:      stripExpression,
+      text:         stripExpression,
+      simple_and:   stripExpression,
+      simple_not:   stripExpression,
+      optional:     stripExpression,
+      zero_or_more: stripExpression,
+      one_or_more:  stripExpression,
+      group:        stripExpression,
+      semantic_and: stripLeaf,
+      semantic_not: stripLeaf,
+      rule_ref:     stripLeaf,
+      literal:      stripLeaf,
+      "class":      stripLeaf,
+      any:          stripLeaf
+    });
+
+    return strip;
+  })();
+
   beforeEach(function() {
     this.addMatchers({
       toParseAs:     function(expected) {
         var result;
 
         try {
-          result = PEG.parser.parse(this.actual);
+          result = peg.parser.parse(this.actual);
+
+          stripLocation(result);
 
           this.message = function() {
             return "Expected " + jasmine.pp(this.actual) + " "
@@ -127,10 +203,12 @@ describe("PEG.js grammar parser", function() {
       },
 
       toFailToParse: function(details) {
-        var result;
+        var result, key;
 
         try {
-          result = PEG.parser.parse(this.actual);
+          result = peg.parser.parse(this.actual);
+
+          stripLocation(result);
 
           this.message = function() {
             return "Expected " + jasmine.pp(this.actual) + " to fail to parse"
@@ -140,12 +218,6 @@ describe("PEG.js grammar parser", function() {
 
           return false;
         } catch (e) {
-          /*
-           * Should be at the top level but then JSHint complains about bad for
-           * in variable.
-           */
-          var key;
-
           if (this.isNot) {
             this.message = function() {
               return "Expected " + jasmine.pp(this.actual) + " to parse, "
@@ -286,12 +358,15 @@ describe("PEG.js grammar parser", function() {
 
   /* Canonical PrimaryExpression is "\"abcd\"". */
   it("parses PrimaryExpression", function() {
-    expect('start = "abcd"'      ).toParseAs(trivialGrammar);
-    expect('start = [a-d]'       ).toParseAs(classGrammar([["a", "d"]], false, false, "[a-d]"));
-    expect('start = .'           ).toParseAs(anyGrammar());
-    expect('start = a'           ).toParseAs(ruleRefGrammar("a"));
-    expect('start = &{ code }'   ).toParseAs(oneRuleGrammar(semanticAnd));
-    expect('start = (\n"abcd"\n)').toParseAs(trivialGrammar);
+    expect('start = "abcd"'   ).toParseAs(trivialGrammar);
+    expect('start = [a-d]'    ).toParseAs(classGrammar([["a", "d"]], false, false));
+    expect('start = .'        ).toParseAs(anyGrammar());
+    expect('start = a'        ).toParseAs(ruleRefGrammar("a"));
+    expect('start = &{ code }').toParseAs(oneRuleGrammar(semanticAnd));
+
+    expect('start = (\na:"abcd"\n)'            ).toParseAs(oneRuleGrammar(groupLabeled));
+    expect('start = (\n"abcd" "efgh" "ijkl"\n)').toParseAs(oneRuleGrammar(groupSequence));
+    expect('start = (\n"abcd"\n)'              ).toParseAs(trivialGrammar);
   });
 
   /* Canonical RuleReferenceExpression is "a". */
@@ -451,43 +526,38 @@ describe("PEG.js grammar parser", function() {
   /* Canonical CharacterClassMatcher is "[a-d]". */
   it("parses CharacterClassMatcher", function() {
     expect('start = []').toParseAs(
-      classGrammar([], false, false, "[]")
+      classGrammar([], false, false)
     );
     expect('start = [a-d]').toParseAs(
-      classGrammar([["a", "d"]], false, false, "[a-d]")
+      classGrammar([["a", "d"]], false, false)
     );
     expect('start = [a]').toParseAs(
-      classGrammar(["a"], false, false, "[a]")
+      classGrammar(["a"], false, false)
     );
     expect('start = [a-de-hi-l]').toParseAs(
       classGrammar(
         [["a", "d"], ["e", "h"], ["i", "l"]],
         false,
-        false,
-        "[a-de-hi-l]"
+        false
       )
     );
     expect('start = [^a-d]').toParseAs(
-      classGrammar([["a", "d"]], true, false, "[^a-d]")
+      classGrammar([["a", "d"]], true, false)
     );
     expect('start = [a-d]i').toParseAs(
-      classGrammar([["a", "d"]], false, true, "[a-d]i")
+      classGrammar([["a", "d"]], false, true)
     );
 
     expect('start = [\\\n]').toParseAs(
-      classGrammar([], false, false, "[\\\n]")
+      classGrammar([], false, false)
     );
   });
 
   /* Canonical ClassCharacterRange is "a-d". */
   it("parses ClassCharacterRange", function() {
-    expect('start = [a-d]').toParseAs(
-      classGrammar([["a", "d"]], false, false, "[a-d]")
-    );
+    expect('start = [a-d]').toParseAs(classGrammar([["a", "d"]], false, false));
 
-    expect('start = [a-a]').toParseAs(
-      classGrammar([["a", "a"]], false, false, "[a-a]")
-    );
+    expect('start = [a-a]').toParseAs(classGrammar([["a", "a"]], false, false));
     expect('start = [b-a]').toFailToParse({
       message: "Invalid character range: b-a."
     });
@@ -495,15 +565,9 @@ describe("PEG.js grammar parser", function() {
 
   /* Canonical ClassCharacter is "a". */
   it("parses ClassCharacter", function() {
-    expect('start = [a]'   ).toParseAs(
-      classGrammar(["a"], false, false, "[a]")
-    );
-    expect('start = [\\n]' ).toParseAs(
-      classGrammar(["\n"], false, false, "[\\n]")
-    );
-    expect('start = [\\\n]').toParseAs(
-      classGrammar([], false, false, "[\\\n]")
-    );
+    expect('start = [a]'   ).toParseAs(classGrammar(["a"],  false, false));
+    expect('start = [\\n]' ).toParseAs(classGrammar(["\n"], false, false));
+    expect('start = [\\\n]').toParseAs(classGrammar([],     false, false));
 
     expect('start = []]' ).toFailToParse();
     expect('start = [\\]').toFailToParse();

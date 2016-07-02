@@ -36,19 +36,19 @@
     return result;
   }
 
-  function buildList(first, rest, index) {
-    return (first !== null ? [first] : []).concat(extractList(rest, index));
+  function buildList(head, tail, index) {
+    return (head !== null ? [head] : []).concat(extractList(tail, index));
   }
 
-  function buildExpression(first, rest) {
-    var result = first, i;
+  function buildExpression(head, tail) {
+    var result = head, i;
 
-    for (i = 0; i < rest.length; i++) {
+    for (i = 0; i < tail.length; i++) {
       result = {
         type:     "Expression",
-        operator: rest[i][0],
+        operator: tail[i][0],
         left:     result,
-        right:    rest[i][1]
+        right:    tail[i][1]
       };
     }
 
@@ -93,7 +93,7 @@ media
     }
 
 media_list
-  = first:medium rest:("," S* medium)* { return buildList(first, rest, 2); }
+  = head:medium tail:("," S* medium)* { return buildList(head, tail, 2); }
 
 medium
   = name:IDENT S* { return name; }
@@ -180,7 +180,7 @@ id
   = id:HASH { return { type: "IDSelector", id: id }; }
 
 class
-  = "." class_:IDENT { return { type: "ClassSelector", class: class_ }; }
+  = "." class_:IDENT { return { type: "ClassSelector", "class": class_ }; }
 
 element_name
   = IDENT
@@ -228,7 +228,7 @@ prio
   = IMPORTANT_SYM S*
 
 expr
-  = first:term rest:(operator? term)* { return buildExpression(first, rest); }
+  = head:term tail:(operator? term)* { return buildExpression(head, tail); }
 
 term
   = quantity:(PERCENTAGE / LENGTH / EMS / EXS / ANGLE / TIME / FREQ / NUMBER)

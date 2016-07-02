@@ -4,6 +4,7 @@
 # speed and size. Makes sense to use only on PEG.js Git repository checkout.
 
 set -e
+export LC_ALL=C
 
 # Measurement
 
@@ -60,7 +61,7 @@ print_results() {
 
   echo
 
-  echo "(Measured by /tools/impact with Node.js $(node --version) on $(uname --operating-system --machine).)"
+  echo "(Measured by /tools/impact with Node.js $(node --version) on $(uname -mrs).)"
 }
 
 print_usage() {
@@ -100,13 +101,13 @@ fi
 
 cd_to_root
 
-echo -n "Measuring commit $commit_before..."
+printf "Measuring commit %s..." "$commit_before"
 prepare "$commit_before"
 speed1=$(measure_speed)
 size1=$(measure_size)
 echo " OK"
 
-echo -n "Measuring commit $commit_after..."
+printf "Measuring commit %s..." "$commit_after"
 prepare "$commit_after"
 speed2=$(measure_speed)
 size2=$(measure_size)

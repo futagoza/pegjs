@@ -1,9 +1,17 @@
+/* global peg */
+
+"use strict";
+
 describe("compiler pass |reportLeftRecursion|", function() {
-  var pass = PEG.compiler.passes.check.reportLeftRecursion;
+  var pass = peg.compiler.passes.check.reportLeftRecursion;
 
   it("reports direct left recursion", function() {
     expect(pass).toReportError('start = start', {
-      message: 'Left recursion detected for rule \"start\".'
+      message:  'Possible left recursion detected (start -> start).',
+      location: {
+        start: { offset:  8, line: 1, column:  9 },
+        end:   { offset: 13, line: 1, column: 14 }
+      }
     });
   });
 
@@ -12,7 +20,11 @@ describe("compiler pass |reportLeftRecursion|", function() {
       'start = stop',
       'stop  = start'
     ].join("\n"), {
-      message: 'Left recursion detected for rule \"start\".'
+      message:  'Possible left recursion detected (start -> stop -> start).',
+      location: {
+        start: { offset: 21, line: 2, column:  9 },
+        end:   { offset: 26, line: 2, column: 14 }
+      }
     });
   });
 
@@ -27,7 +39,21 @@ describe("compiler pass |reportLeftRecursion|", function() {
       expect(pass).not.toReportError('start = "" "" "a" start');
     });
 
-    it("computes empty string matching correctly", function() {
+    /* Regression test for #359. */
+    it("reports left recursion when rule reference is wrapped in an expression", function() {
+      expect(pass).toReportError('start = "" start?');
+    });
+
+    it("computes expressions that always consume input on success correctly", function() {
+      expect(pass).toReportError([
+        'start = a start',
+        'a "a" = ""'
+      ].join('\n'));
+      expect(pass).not.toReportError([
+        'start = a start',
+        'a "a" = "a"'
+      ].join('\n'));
+
       expect(pass).toReportError('start = ("" / "a" / "b") start');
       expect(pass).toReportError('start = ("a" / "" / "b") start');
       expect(pass).toReportError('start = ("a" / "b" / "") start');
@@ -62,6 +88,9 @@ describe("compiler pass |reportLeftRecursion|", function() {
       expect(pass).toReportError('start = ""+ start');
       expect(pass).not.toReportError('start = "a"+ start');
 
+      expect(pass).toReportError('start = ("") start');
+      expect(pass).not.toReportError('start = ("a") start');
+
       expect(pass).toReportError('start = &{ } start');
 
       expect(pass).toReportError('start = !{ } start');
@@ -80,7 +109,7 @@ describe("compiler pass |reportLeftRecursion|", function() {
 
       expect(pass).not.toReportError('start = [a-d] start');
 
-      expect(pass).not.toReportError('start = "." start');
+      expect(pass).not.toReportError('start = . start');
     });
   });
 });
