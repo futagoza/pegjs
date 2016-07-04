@@ -1,4 +1,4 @@
-[![Build status](https://img.shields.io/travis/pegjs/pegjs.svg)](https://travis-ci.org/pegjs/pegjs)
+[![Build status](https://img.shields.io/travis/futagoza/pegjs.svg)](https://travis-ci.org/futagoza/pegjs)
 [![npm version](https://img.shields.io/npm/v/pegjs-dev.svg)](https://www.npmjs.com/package/pegjs-dev)
 [![Bower version](https://img.shields.io/bower/v/pegjs.svg)](https://github.com/pegjs/bower)
 [![License](https://img.shields.io/badge/license-mit-blue.svg)](https://opensource.org/licenses/MIT)
