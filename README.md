@@ -14,10 +14,17 @@ tools easily.
 About This Module (pegjs-dev)
 -----------------------------
 
-This NPM module is simply the current development version hosted at [Github](https://github.com/pegjs/pegjs),
+1) This NPM module is simply the current development version hosted at [Github](https://github.com/pegjs/pegjs),
 which includes all git commits made since the last release. You can tell how many
 commits have been made since the release by looking at the 'patch' number in the
 version string: '0.9.66' means 66 commits.
+
+2) As of 04 July 2016 I have decided to merge changes when any of the following conditions are met:
+
+  * The PEG.js parser is regenerated
+  * Parser generator (the compiler) is updated
+  * More then 5 commits have occurred
+  * I'm currently using PEG.js via [pegjs-dev](https://www.npmjs.com/package/pegjs-dev)
 
 More information...
 -------------------
