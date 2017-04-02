@@ -170,7 +170,7 @@ SuffixedExpression
 SuffixedOperator
   = "?"
   / "*"
-  / "+" !"+"
+  / "+" !"+" { return "+"; }
 
 PrimaryExpression
   = LiteralMatcher
